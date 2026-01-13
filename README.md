@@ -41,6 +41,21 @@ CyberWatch هو نظام **Decoupled Pipeline** لاستقبال التنبيه�
                                                 └─────────────────┘
 ```
 
+### 📦 الصيغ المدعومة
+
+النظام يقبل البيانات بـ **أي صيغة** ويحولها تلقائياً للصيغة المعيارية!
+
+| الصيغة | Content-Type | مثال |
+|--------|--------------|------|
+| **JSON** | `application/json` | `{"alert_id": "123", "severity": "high"}` |
+| **XML** | `application/xml`, `text/xml` | `<alert><id>123</id></alert>` |
+| **Syslog RFC 3164** | `text/plain` | `<134>Jan 13 12:00:00 host app: message` |
+| **Syslog RFC 5424** | `text/plain` | `<134>1 2026-01-13T12:00:00Z host app - - msg` |
+| **CEF** | `text/plain` | `CEF:0|Vendor|Product|1.0|100|Name|7|src=1.2.3.4` |
+| **LEEF** | `text/plain` | `LEEF:2.0|Vendor|Product|1.0|src=1.2.3.4` |
+| **Key-Value** | `text/plain` | `src=1.2.3.4 dst=5.6.7.8 action=block` |
+| **Plain Text** | `text/plain` | أي نص عادي |
+
 ---
 
 ## 🚀 التشغيل السريع
@@ -150,52 +165,364 @@ Content-Type: application/json
 
 ---
 
-## 🔧 أمثلة الاستخدام
+## 🧠 Universal Smart Parser
 
-### إرسال تنبيه من PowerShell
+النظام يحتوي على **Universal Smart Parser** قادر على معالجة **أي نوع من البيانات** تلقائياً!
+
+### كيف يعمل؟
+
+```
+البيانات الواردة (أي صيغة)  ──▶  Pattern Detection  ──▶  Field Mapping  ──▶  JSON معياري
+```
+
+| الميزة | الوصف |
+|--------|-------|
+| � **Pattern Detection** | يكتشف الحقول تلقائياً مثل severity, timestamp, IP |
+| 🔗 **Field Mapping** | يربط الحقول غير المعروفة بالحقول المعيارية |
+| 🎯 **IOC Extraction** | يستخرج IPs و Hashes تلقائياً |
+| 📦 **Nested Flattening** | يفكك البيانات المتداخلة |
+| ➕ **Extra Fields** | يحفظ الحقول الإضافية في `extra_fields` |
+
+### الحقول التي يتعرف عليها تلقائياً
+
+| الحقل المعياري | الأسماء المقبولة |
+|----------------|------------------|
+| `id` | alert_id, event_id, incident_id, offense_id, uuid, guid |
+| `timestamp` | timestamp, time, date, created_at, event_time, @timestamp |
+| `severity` | severity, priority, urgency, risk_level, threat_level |
+| `title` | title, name, subject, summary, rule_name, alert_name |
+| `description` | description, details, message, body, notes |
+| `source_ip` | source_ip, src_ip, src, attacker_ip, remote_ip, origin_ip |
+| `destination_ip` | destination_ip, dest_ip, dst, target_ip, victim_ip |
+| `user` | user, username, account, src_user, actor |
+| `hostname` | hostname, host, computer_name, device_name, endpoint |
+
+### 🔄 كيف يتم التعامل مع الصيغ المختلفة؟
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     البيانات الواردة                                 │
+│         (JSON, XML, Syslog, CEF, LEEF, Text, etc.)                  │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  1️⃣ FormatDetector                                                  │
+│  يكتشف نوع الصيغة تلقائياً:                                          │
+│  • JSON: يبدأ بـ { أو [                                              │
+│  • XML: يبدأ بـ <                                                    │
+│  • CEF: يبدأ بـ CEF:                                                 │
+│  • LEEF: يبدأ بـ LEEF:                                               │
+│  • Syslog: يبدأ بـ <priority>                                        │
+│  • Key-Value: يحتوي على key=value                                   │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  2️⃣ Format Parser                                                   │
+│  يحول البيانات إلى Dictionary                                       │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  3️⃣ UniversalParser                                                 │
+│  يطابق الحقول ويحول للصيغة المعيارية                                 │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      JSON المعياري                                   │
+│  { "id": "...", "severity": "...", "source_ip": "...", ... }        │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### مثال على التحويل من Syslog:
+
+**الإدخال:**
+```
+<134>Jan 13 12:00:00 server01 sshd[1234]: Failed password for admin from 203.0.113.50
+```
+
+**الإخراج:**
+```json
+{
+    "id": "alert_abc123",
+    "severity": "medium",
+    "hostname": "server01",
+    "description": "Failed password for admin from 203.0.113.50",
+    "source_ip": "203.0.113.50",
+    "detected_format": "syslog",
+    "extra_fields": {
+        "priority": 134,
+        "facility": 16,
+        "application": "sshd",
+        "pid": "1234"
+    }
+}
+```
+
+---
+
+## 🧪 اختبار النظام
+
+### المصادر المتاحة للاختبار
+
+| Source ID | النوع | الوصف |
+|-----------|-------|-------|
+| `qradar` | SIEM | IBM QRadar |
+| `crowdstrike` | EDR | CrowdStrike Falcon |
+| `defender` | EDR | Microsoft Defender |
+| `splunk` | SIEM | Splunk |
+| `custom_siem` | SIEM | أي مصدر مخصص |
+
+---
+
+## 📝 أمثلة الاختبار (PowerShell)
+
+### 1️⃣ تنبيه بسيط
 ```powershell
-$body = @{
+$alert = @{
     alert_id = "test-001"
     severity = "high"
     title = "Test Alert"
     description = "This is a test alert"
     source_ip = "192.168.1.100"
-    timestamp = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/qradar/" -Method POST -Body $body -ContentType "application/json"
+Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/qradar/" -Method POST -Body $alert -ContentType "application/json"
 ```
 
-### إرسال تنبيه من cURL
-```bash
-curl -X POST http://localhost:8000/api/webhook/qradar/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "alert_id": "test-001",
-    "severity": "high",
-    "title": "Test Alert",
-    "description": "This is a test alert",
-    "source_ip": "192.168.1.100"
-  }'
+### 2️⃣ تنبيه بصيغة QRadar
+```powershell
+$qradarAlert = @{
+    id = 12345
+    description = "Excessive Firewall Denies"
+    severity = 8
+    offense_type = 1
+    status = "OPEN"
+    start_time = 1705147200000
+    offense_source = "203.0.113.50"
+    categories = @("Firewall", "Denial")
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/qradar/" -Method POST -Body $qradarAlert -ContentType "application/json"
 ```
 
-### إرسال تنبيه من Python
-```python
-import requests
+### 3️⃣ تنبيه بصيغة CrowdStrike
+```powershell
+$crowdstrikeAlert = @{
+    detection_id = "ldt:abc123"
+    created_timestamp = "2026-01-13T12:00:00Z"
+    max_severity = 85
+    status = "new"
+    device = @{
+        hostname = "WORKSTATION-01"
+        local_ip = "192.168.1.50"
+        external_ip = "203.0.113.100"
+    }
+    behaviors = @(
+        @{
+            scenario = "Malicious PowerShell Execution"
+            tactic = "Execution"
+            user_name = "john.doe"
+            sha256 = "abc123def456789..."
+        }
+    )
+} | ConvertTo-Json -Depth 5
 
-alert = {
-    "alert_id": "test-001",
-    "severity": "high",
-    "title": "Test Alert",
-    "description": "This is a test alert",
-    "source_ip": "192.168.1.100"
+Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/crowdstrike/" -Method POST -Body $crowdstrikeAlert -ContentType "application/json"
+```
+
+### 4️⃣ تنبيه بصيغة غير معروفة (Universal Parser)
+```powershell
+$unknownFormat = @{
+    evt_uuid = "xyz-789-abc"
+    risk_score = 9.5
+    attack_type = "Ransomware Detected"
+    event_details = "Encryption activity detected on multiple files"
+    attacker_ip = "45.33.32.156"
+    victim_host = "FILE-SERVER-01"
+    affected_user = "admin@company.com"
+    file_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    detected_at = "2026-01-13T13:00:00Z"
+    custom_field_1 = "any value"
+    custom_field_2 = 12345
+    nested_data = @{
+        process = @{
+            name = "malware.exe"
+            pid = 4567
+            cmdline = "malware.exe --encrypt C:\"
+        }
+    }
+} | ConvertTo-Json -Depth 5
+
+Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/custom_siem/" -Method POST -Body $unknownFormat -ContentType "application/json"
+```
+
+### 5️⃣ تنبيه Splunk
+```powershell
+$splunkAlert = @{
+    event_id = "sp-001"
+    _time = "2026-01-13T12:00:00Z"
+    urgency = "critical"
+    rule_name = "Brute Force Attack Detected"
+    rule_description = "Multiple failed login attempts from single IP"
+    src = "10.0.0.50"
+    dest = "192.168.1.100"
+    src_user = "attacker"
+    host = "auth-server-01"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/splunk/" -Method POST -Body $splunkAlert -ContentType "application/json"
+```
+
+### 6️⃣ تنبيه Microsoft Defender
+```powershell
+$defenderAlert = @{
+    id = "da-123456"
+    createdDateTime = "2026-01-13T12:00:00Z"
+    severity = "high"
+    title = "Suspicious Process Execution"
+    description = "A suspicious process was detected running on the endpoint"
+    category = "Malware"
+    status = "new"
+    evidence = @(
+        @{
+            "@odata.type" = "#microsoft.graph.security.ipEvidence"
+            ipAddress = "192.168.1.100"
+        }
+        @{
+            "@odata.type" = "#microsoft.graph.security.userEvidence"
+            userAccount = @{ accountName = "john.doe" }
+        }
+        @{
+            "@odata.type" = "#microsoft.graph.security.deviceEvidence"
+            deviceDnsName = "WORKSTATION-PC"
+        }
+    )
+} | ConvertTo-Json -Depth 5
+
+Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/defender/" -Method POST -Body $defenderAlert -ContentType "application/json"
+```
+
+---
+
+## � اختبار الصيغ المختلفة (Non-JSON)
+
+### 7️⃣ تنبيه Syslog
+```powershell
+$syslogData = '<134>Jan 13 12:00:00 server01 sshd[1234]: Failed password for admin from 203.0.113.50 port 22 ssh2'
+
+Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/custom_siem/" -Method POST -Body $syslogData -ContentType "text/plain"
+```
+
+### 8️⃣ تنبيه CEF (Common Event Format)
+```powershell
+$cefData = 'CEF:0|Security|Firewall|1.0|100|Connection Blocked|7|src=192.168.1.100 dst=10.0.0.1 spt=49152 dpt=443 act=blocked msg=Suspicious outbound connection'
+
+Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/custom_siem/" -Method POST -Body $cefData -ContentType "text/plain"
+```
+
+### 9️⃣ تنبيه XML
+```powershell
+$xmlData = @'
+<?xml version="1.0"?>
+<alert>
+    <id>xml-001</id>
+    <severity>high</severity>
+    <title>Malware Detected</title>
+    <description>Trojan detected on endpoint</description>
+    <source_ip>192.168.1.100</source_ip>
+    <hostname>workstation-01</hostname>
+    <user>john.doe</user>
+    <timestamp>2026-01-13T12:00:00Z</timestamp>
+    <indicators>
+        <indicator type="md5">d41d8cd98f00b204e9800998ecf8427e</indicator>
+        <indicator type="ip">45.33.32.156</indicator>
+    </indicators>
+</alert>
+'@
+
+Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/custom_siem/" -Method POST -Body $xmlData -ContentType "application/xml"
+```
+
+### 🔟 تنبيه Key-Value
+```powershell
+$kvData = 'timestamp=2026-01-13T12:00:00Z severity=high src_ip=192.168.1.100 dst_ip=10.0.0.1 action=blocked user=admin host=firewall-01 msg="Connection blocked by policy"'
+
+Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/custom_siem/" -Method POST -Body $kvData -ContentType "text/plain"
+```
+
+### 1️⃣1️⃣ تنبيه LEEF
+```powershell
+$leefData = 'LEEF:2.0|IBM|QRadar|7.3|100|	devTime=2026-01-13T12:00:00Z	severity=8	src=192.168.1.100	dst=10.0.0.1	userName=admin	action=blocked'
+
+Invoke-RestMethod -Uri "http://localhost:8000/api/webhook/custom_siem/" -Method POST -Body $leefData -ContentType "text/plain"
+```
+
+## �🔍 التحقق من النتائج
+
+### 1. عبر Kafka UI
+افتح http://localhost:8080 وانتقل إلى:
+- **Topics** → **alerts.raw** → للرسائل الخام
+- **Topics** → **alerts.parsed** → للرسائل المحللة
+
+### 2. عبر PowerShell
+```powershell
+# التحقق من Health
+Invoke-RestMethod -Uri "http://localhost:8000/api/health/"
+
+# عرض الإحصائيات
+Invoke-RestMethod -Uri "http://localhost:8000/api/stats/"
+
+# عرض المصادر
+Invoke-RestMethod -Uri "http://localhost:8000/api/sources/"
+```
+
+### 3. عبر Docker Logs
+```powershell
+# سجلات Sensor Service
+docker-compose logs -f sensor-service
+
+# سجلات Parsing Service
+docker-compose logs -f parsing-service
+```
+
+---
+
+## 📊 مثال على التحويل
+
+### الإدخال (صيغة غير معروفة):
+```json
+{
+    "evt_uuid": "xyz-789",
+    "risk_score": 9.5,
+    "attack_type": "Ransomware",
+    "attacker_ip": "45.33.32.156",
+    "victim_host": "SERVER-01"
 }
+```
 
-response = requests.post(
-    "http://localhost:8000/api/webhook/qradar/",
-    json=alert
-)
-print(response.json())
+### الإخراج (صيغة معيارية):
+```json
+{
+    "id": "alert_abc123def456",
+    "source_id": "custom_siem",
+    "source_type": "SIEM",
+    "timestamp": "2026-01-13T13:00:00Z",
+    "severity": "critical",
+    "title": "Ransomware",
+    "source_ip": "45.33.32.156",
+    "hostname": "SERVER-01",
+    "indicators": [
+        {"type": "ip", "value": "45.33.32.156"}
+    ],
+    "extra_fields": {
+        "evt_uuid": "xyz-789",
+        "risk_score": 9.5
+    },
+    "metadata": {
+        "parser_type": "universal",
+        "parser_version": "2.0.0",
+        "parse_success": true
+    }
+}
 ```
 
 ---

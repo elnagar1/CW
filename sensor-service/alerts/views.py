@@ -1,6 +1,7 @@
 """
 REST API Views for Sensor Service.
 Handles webhook endpoints and status APIs.
+Supports multiple data formats: JSON, XML, Syslog, CEF, Plain Text, etc.
 """
 
 import json
@@ -10,6 +11,7 @@ import logging
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.parsers import JSONParser, BaseParser
 from django.utils import timezone
 
 from .models import AlertSource, IngestionLog
@@ -19,11 +21,56 @@ from .kafka_producer import get_kafka_producer
 logger = logging.getLogger(__name__)
 
 
+class PlainTextParser(BaseParser):
+    """Parser for plain text content types."""
+    media_type = 'text/plain'
+    
+    def parse(self, stream, media_type=None, parser_context=None):
+        return stream.read().decode('utf-8')
+
+
+class XMLParser(BaseParser):
+    """Parser for XML content types."""
+    media_type = 'application/xml'
+    
+    def parse(self, stream, media_type=None, parser_context=None):
+        return stream.read().decode('utf-8')
+
+
+class TextXMLParser(BaseParser):
+    """Parser for text/xml content type."""
+    media_type = 'text/xml'
+    
+    def parse(self, stream, media_type=None, parser_context=None):
+        return stream.read().decode('utf-8')
+
+
+class AnyParser(BaseParser):
+    """Parser that accepts any content type."""
+    media_type = '*/*'
+    
+    def parse(self, stream, media_type=None, parser_context=None):
+        content = stream.read()
+        try:
+            return content.decode('utf-8')
+        except UnicodeDecodeError:
+            return content.decode('latin-1')
+
+
 class WebhookView(APIView):
     """
     Generic webhook endpoint for receiving alerts from external sources.
     URL: POST /api/webhook/<source_id>/
+    
+    Supports multiple content types:
+    - application/json
+    - application/xml
+    - text/xml
+    - text/plain (for Syslog, CEF, etc.)
+    - Any other format
     """
+    
+    parser_classes = [JSONParser, PlainTextParser, XMLParser, TextXMLParser, AnyParser]
     
     def post(self, request, source_id):
         try:
@@ -38,13 +85,25 @@ class WebhookView(APIView):
                 if not self._verify_signature(request.body, source.webhook_secret, signature):
                     return Response({'error': 'Invalid signature'}, status=status.HTTP_401_UNAUTHORIZED)
             
+            # Get raw data - handle both parsed JSON and raw strings
+            raw_data = request.data
+            content_type = request.content_type or 'unknown'
+            
+            # If it's a string (from text/plain or XML), wrap it for Kafka
+            if isinstance(raw_data, str):
+                logger.info(f"Received {content_type} data from {source_id}")
+            
             # Send raw data directly to Kafka
             producer = get_kafka_producer()
             success = producer.send_raw_alert(
                 source_id=source_id,
                 source_type=source.source_type,
-                raw_data=request.data,
-                metadata={'received_at': timezone.now().isoformat(), 'content_type': request.content_type}
+                raw_data=raw_data,
+                metadata={
+                    'received_at': timezone.now().isoformat(), 
+                    'content_type': content_type,
+                    'data_format': 'raw' if isinstance(raw_data, str) else 'json'
+                }
             )
             
             if success:
@@ -52,7 +111,7 @@ class WebhookView(APIView):
                     source=source, ingestion_type='webhook', status='success',
                     alerts_received=1, alerts_sent_to_kafka=1, completed_at=timezone.now()
                 )
-                return Response({'status': 'accepted'}, status=status.HTTP_202_ACCEPTED)
+                return Response({'status': 'accepted', 'content_type': content_type}, status=status.HTTP_202_ACCEPTED)
             else:
                 return Response({'error': 'Failed to queue alert'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 

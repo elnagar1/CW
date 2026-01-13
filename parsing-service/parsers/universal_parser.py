@@ -98,25 +98,37 @@ class UniversalParser(BaseParser):
     }
     
     def __init__(self):
-        super().__init__({})
         self._field_cache: Dict[str, Dict[str, str]] = {}
+        # Import here to avoid circular imports
+        from .format_detector import get_format_detector
+        self._format_detector = get_format_detector()
     
     def parse(self, raw_data: Any) -> Dict[str, Any]:
         """
         Parse any data format into standard alert schema.
         
         Handles:
+        - JSON
+        - XML
+        - Syslog (RFC 3164 & 5424)
+        - CEF (Common Event Format)
+        - LEEF (Log Event Extended Format)
+        - CSV
+        - Key-Value pairs
+        - Plain text
         - Dict/JSON objects
         - Nested structures
         - Lists of alerts
         - Unknown field names
         """
-        # Ensure we have a dict to work with
-        if isinstance(raw_data, str):
-            try:
-                raw_data = json.loads(raw_data)
-            except json.JSONDecodeError:
-                raw_data = {'raw_message': raw_data}
+        detected_format = 'unknown'
+        
+        # Use FormatDetector ف handle non-JSON formats
+        if isinstance(raw_data, str) or isinstance(raw_data, bytes):
+            raw_data, detected_format = self._format_detector.detect_and_parse(raw_data)
+            logger.info(f"Detected format: {detected_format}")
+        elif isinstance(raw_data, dict):
+            detected_format = 'json'
         
         if isinstance(raw_data, list):
             # If it's a list, parse the first item
@@ -149,6 +161,7 @@ class UniversalParser(BaseParser):
             'hostname': mapped.get('hostname'),
             'indicators': indicators,
             'extra_fields': self._get_extra_fields(flat_data, mapped),
+            'detected_format': detected_format,
         }
     
     def _flatten_dict(self, d: Dict, parent_key: str = '', sep: str = '.') -> Dict[str, Any]:
