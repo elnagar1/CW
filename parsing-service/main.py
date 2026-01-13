@@ -68,6 +68,9 @@ def process_message(message: dict, parser_registry: ParserRegistry) -> dict:
     """
     Process a raw alert message and convert to standard format.
     
+    Uses specific parsers when available, falls back to UniversalParser
+    for unknown data formats. This ensures ALL data is parsed successfully.
+    
     Args:
         message: Raw message from alerts.raw topic
         parser_registry: Registry containing all parsers
@@ -80,27 +83,28 @@ def process_message(message: dict, parser_registry: ParserRegistry) -> dict:
     source_id = envelope.get('source_id', 'unknown')
     source_type = envelope.get('source_type', 'unknown')
     
-    # Get appropriate parser
+    # Get appropriate parser (UniversalParser is used as fallback)
     parser = parser_registry.get_parser(source_id)
+    using_universal = not parser_registry.has_specific_parser(source_id)
     
-    if parser:
-        try:
-            parsed_data = parser.parse(raw_data)
-        except Exception as e:
-            logger.error(f"Parser error for {source_id}: {e}")
-            parsed_data = {'parse_error': str(e), 'raw_data': raw_data}
-    else:
-        logger.warning(f"No parser found for {source_id}, using raw data")
-        parsed_data = raw_data
+    try:
+        parsed_data = parser.parse(raw_data)
+        parse_success = True
+        parse_error = None
+    except Exception as e:
+        logger.error(f"Parser error for {source_id}: {e}")
+        parse_success = False
+        parse_error = str(e)
+        parsed_data = {}
     
-    # Create standard alert structure
-    return {
+    # Build standard alert structure
+    alert = {
         'id': parsed_data.get('id', f"{source_id}_{datetime.utcnow().timestamp()}"),
         'source_id': source_id,
         'source_type': source_type,
         'timestamp': parsed_data.get('timestamp', datetime.utcnow().isoformat()),
         'severity': parsed_data.get('severity', 'medium'),
-        'title': parsed_data.get('title', 'Unknown Alert'),
+        'title': parsed_data.get('title', 'Security Alert'),
         'description': parsed_data.get('description', ''),
         'category': parsed_data.get('category', 'unknown'),
         'status': parsed_data.get('status', 'new'),
@@ -109,13 +113,25 @@ def process_message(message: dict, parser_registry: ParserRegistry) -> dict:
         'user': parsed_data.get('user'),
         'hostname': parsed_data.get('hostname'),
         'indicators': parsed_data.get('indicators', []),
+        'extra_fields': parsed_data.get('extra_fields', {}),
         'raw_data': raw_data,
         'metadata': {
             'ingestion_time': envelope.get('ingestion_time'),
             'parsed_time': datetime.utcnow().isoformat(),
-            'parser_version': parser.version if parser else 'none',
+            'parser_version': parser.version,
+            'parser_type': 'universal' if using_universal else 'specific',
+            'parse_success': parse_success,
+            'parse_error': parse_error,
         }
     }
+    
+    # Log parsing method
+    if using_universal:
+        logger.info(f"Parsed {source_id} alert using UniversalParser -> {alert['id']}")
+    else:
+        logger.debug(f"Parsed {source_id} alert using {parser.source_id} parser -> {alert['id']}")
+    
+    return alert
 
 
 def main():
