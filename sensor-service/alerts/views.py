@@ -15,7 +15,8 @@ from rest_framework.parsers import JSONParser, BaseParser
 from django.utils import timezone
 
 from .models import AlertSource, IngestionLog
-from .tasks import process_webhook
+from .models import AlertSource, IngestionLog
+from .tasks import pull_qradar_alerts, pull_crowdstrike_alerts, pull_defender_alerts, pull_splunk_alerts
 from .kafka_producer import get_kafka_producer
 
 logger = logging.getLogger(__name__)
@@ -170,3 +171,34 @@ class StatsView(APIView):
             'alerts_sent_to_kafka': stats['total_sent'] or 0,
             'total_ingestions': stats['total_ingestions'] or 0
         })
+
+
+class PullTriggerView(APIView):
+    """
+    Manually trigger data pulling from configured sources (for testing/simulation).
+    """
+    
+    def post(self, request, source_id):
+        task_mapping = {
+            'qradar': pull_qradar_alerts,
+            'crowdstrike': pull_crowdstrike_alerts,
+            'defender': pull_defender_alerts,
+            'splunk': pull_splunk_alerts,
+        }
+        
+        task = task_mapping.get(source_id)
+        if not task:
+            return Response(
+                {'error': f'No pull task defined for source: {source_id}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Trigger the task asynchronously
+        result = task.delay()
+        
+        return Response({
+            'status': 'triggered',
+            'source': source_id,
+            'task_id': str(result.id),
+            'message': f'Pull task started for {source_id}'
+        }, status=status.HTTP_202_ACCEPTED)

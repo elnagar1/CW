@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ CyberWatch Alert Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Fira+Code&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #0ea5e9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e1b4b;
+            --darker: #0f0a2e;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, #1a1a3e 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+            animation: bgMove 20s linear infinite;
+        }
+
+        @keyframes bgMove {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Header */
+        .header {
+            position: relative;
+            z-index: 10;
+            padding: 2rem;
+            text-align: center;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+        }
+
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        /* Sidebar - Sources */
+        .sidebar {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
+            height: fit-content;
+        }
+
+        .sidebar h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .source-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .source-item {
+            padding: 1rem;
+            border-radius: 12px;
+            background: var(--glass);
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .source-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+            transform: translateX(-5px);
+        }
+
+        .source-item.active {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(14, 165, 233, 0.2));
+            border-color: var(--primary);
+        }
+
+        .source-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .source-info h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .source-info p {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-header h2 {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Format Selector */
+        .format-tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .format-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .format-tab:hover {
+            background: rgba(99, 102, 241, 0.2);
+            color: #fff;
+        }
+
+        .format-tab.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        /* Code Editor */
+        .code-editor {
+            position: relative;
+            margin-top: 1rem;
+        }
+
+        .code-editor textarea {
+            width: 100%;
+            min-height: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        .code-editor textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            border: none;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: #fff;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--glass-border);
+            color: #fff;
+        }
+
+        .btn-outline:hover {
+            background: var(--glass);
+            border-color: var(--primary);
+        }
+
+        /* Actions Row */
+        .actions-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        /* Response Panel */
+        .response-panel {
+            margin-top: 1rem;
+        }
+
+        .response-content {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .response-success {
+            color: var(--success);
+        }
+
+        .response-error {
+            color: var(--danger);
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-item {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 0.25rem;
+        }
+
+        /* History */
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: var(--glass);
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .history-item .time {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .badge-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            backdrop-filter: blur(20px);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toast-success {
+            background: rgba(16, 185, 129, 0.9);
+        }
+
+        .toast-error {
+            background: rgba(239, 68, 68, 0.9);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Bulk Send Section */
+        .bulk-section {
+            margin-top: 1rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.1));
+            border-radius: 15px;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .bulk-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .bulk-header h3 {
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .bulk-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .bulk-input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .bulk-input-group label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .bulk-input-group input,
+        .bulk-input-group select {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            color: #fff;
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .bulk-input-group input:focus,
+        .bulk-input-group select:focus {
+            outline: none;
+            border-color: var(--warning);
+        }
+
+        .bulk-input-group input[type="number"] {
+            width: 80px;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--secondary));
+            border-radius: 6px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: #fff;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 158, 11, 0.3);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--warning);
+        }
+
+        /* Mode Switcher */
+        .mode-switcher {
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--glass-border);
+        }
+
+        .mode-tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .mode-tab:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .mode-tab.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .mode-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .mode-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Pull Simulation Section - Enhanced */
+        .pull-section {
+            padding: 3rem;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+            border-radius: 20px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .pull-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.5));
+        }
+
+        .pull-header h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .pull-desc {
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 500px;
+            line-height: 1.6;
+        }
+
+        .pull-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .pull-btn-large {
+            padding: 1rem 2.5rem;
+            font-size: 1.2rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .pull-btn-large:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(59, 130, 246, 0.5);
+        }
+
+        .pull-btn-large:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <style>
+        /* New Styles for Tabs */
+        .mode-switcher {
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--glass-border)
+        }
+
+        .mode-tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem
+        }
+
+        .mode-tab:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05)
+        }
+
+        .mode-tab.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3)
+        }
+
+        .mode-content {
+            display: none;
+            animation: fadeIn 0.3s ease
+        }
+
+        .mode-content.active {
+            display: block
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .pull-section {
+            padding: 3rem;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+            border-radius: 20px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem
+        }
+
+        .pull-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))
+        }
+
+        .pull-header h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem
+        }
+
+        .pull-desc {
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 500px;
+            line-height: 1.6
+        }
+
+        .pull-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            justify-content: center;
+            width: 100%
+        }
+
+        .pull-btn-large {
+            padding: 1rem 2.5rem;
+            font-size: 1.2rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s ease
+        }
+
+        .pull-btn-large:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(59, 130, 246, 0.5)
+        }
+
+        .pull-btn-large:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none
+        }
+    </style>
+    <div class="bg-animation"></div>
+
+    <header class="header">
+        <h1>🛡️ CyberWatch Alert Simulator</h1>
+        <p>محاكاة إرسال التنبيهات الأمنية من مختلف المصادر</p>
+    </header>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>📡 مصادر التنبيهات</h2>
+            <div class="source-list" id="sourceList">
+                <div class="source-item active" data-source="qradar" data-type="SIEM">
+                    <div class="source-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">🔵</div>
+                    <div class="source-info">
+                        <h3>IBM QRadar</h3>
+                        <p>SIEM • Offense Events</p>
+                    </div>
+                </div>
+                <div class="source-item" data-source="crowdstrike" data-type="EDR">
+                    <div class="source-icon" style="background: linear-gradient(135deg, #f97316, #ea580c);">🟠</div>
+                    <div class="source-info">
+                        <h3>CrowdStrike Falcon</h3>
+                        <p>EDR • Detections</p>
+                    </div>
+                </div>
+                <div class="source-item" data-source="defender" data-type="EDR">
+                    <div class="source-icon" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">🔷</div>
+                    <div class="source-info">
+                        <h3>Microsoft Defender</h3>
+                        <p>XDR • Security Alerts</p>
+                    </div>
+                </div>
+                <div class="source-item" data-source="splunk" data-type="SIEM">
+                    <div class="source-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a);">🟢</div>
+                    <div class="source-info">
+                        <h3>Splunk</h3>
+                        <p>SIEM • Notable Events</p>
+                    </div>
+                </div>
+                <div class="source-item" data-source="custom_siem" data-type="SIEM">
+                    <div class="source-icon" style="background: linear-gradient(135deg, #a855f7, #7c3aed);">🟣</div>
+                    <div class="source-info">
+                        <h3>Custom SIEM</h3>
+                        <p>Universal • Any Format</p>
+                    </div>
+                </div>
+                <div class="source-item" data-source="paloalto" data-type="Firewall">
+                    <div class="source-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">🔴</div>
+                    <div class="source-info">
+                        <h3>Palo Alto</h3>
+                        <p>Firewall • Threat Logs</p>
+                    </div>
+                </div>
+                <div class="source-item" data-source="sentinelone" data-type="EDR">
+                    <div class="source-icon" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">💜</div>
+                    <div class="source-info">
+                        <h3>SentinelOne</h3>
+                        <p>EDR • Threats</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats Bar -->
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalSent">0</div>
+                    <div class="stat-label">تم الإرسال</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="successCount">0</div>
+                    <div class="stat-label">ناجح</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="errorCount">0</div>
+                    <div class="stat-label">فشل</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="currentSource">QRadar</div>
+                    <div class="stat-label">المصدر الحالي</div>
+                </div>
+            </div>
+
+            <!-- Alert Editor -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📝 محرر التنبيهات</h2>
+                    <div class="format-tabs">
+                        <button class="format-tab active" data-format="json">JSON</button>
+                        <button class="format-tab" data-format="cef">CEF</button>
+                        <button class="format-tab" data-format="syslog">Syslog</button>
+                        <button class="format-tab" data-format="xml">XML</button>
+                        <button class="format-tab" data-format="leef">LEEF</button>
+                        <button class="format-tab" data-format="kv">Key-Value</button>
+                    </div>
+                </div>
+
+                <div class="code-editor">
+                    <textarea id="alertData" spellcheck="false"></textarea>
+                </div>
+
+                <div class="actions-row" style="margin-top: 1rem;">
+                    <button class="btn btn-primary" id="sendBtn" onclick="sendAlert()">
+                        <span>🚀</span> إرسال التنبيه
+                    </button>
+                    <button class="btn btn-success" onclick="generateSample()">
+                        <span>🎲</span> توليد عينة
+                    </button>
+                    <button class="btn btn-outline" onclick="clearEditor()">
+                        <span>🗑️</span> مسح
+                    </button>
+                    <button class="btn btn-outline" onclick="copyToClipboard()">
+                        <span>📋</span> نسخ
+                    </button>
+                </div>
+
+                <!-- Bulk Send Section -->
+                <div class="bulk-section">
+                    <div class="bulk-header">
+                        <h3>⚡ إرسال جماعي (Bulk Send)</h3>
+                    </div>
+                    <div class="bulk-controls">
+                        <div class="bulk-input-group">
+                            <label>العدد:</label>
+                            <input type="number" id="bulkCount" min="1" max="100" value="10">
+                        </div>
+                        <div class="bulk-input-group">
+                            <label>التأخير (ms):</label>
+                            <input type="number" id="bulkDelay" min="0" max="1000" value="50">
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="randomSources" checked>
+                            <label for="randomSources">مصادر عشوائية</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="randomFormats" checked>
+                            <label for="randomFormats">صيغ عشوائية</label>
+                        </div>
+                        <button class="btn btn-warning" id="bulkSendBtn" onclick="bulkSend()">
+                            <span>🚀</span> إرسال جماعي
+                        </button>
+                        <button class="btn btn-danger" id="stopBulkBtn" onclick="stopBulk()" style="display: none;">
+                            <span>⏹️</span> إيقاف
+                        </button>
+                    </div>
+                    <div class="progress-container" id="progressContainer">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span id="progressText">0 / 0</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pull Simulation Section -->
+            <div class="pull-section" id="pullSection" style="display: none;">
+                <div class="pull-header">
+                    <h3>📥 سحب البيانات (Pull Simulation)</h3>
+                </div>
+                <div class="pull-controls">
+                    <p style="margin-left: 1rem; color: rgba(255,255,255,0.7);">
+                        محاكاة سحب البيانات من <span id="pullSourceName">Source</span> عبر API
+                    </p>
+                    <button class="btn btn-primary" id="pullBtn" onclick="triggerPull()">
+                        <span>⚡</span> سحب الآن (Pull Now)
+                    </button>
+                </div>
+            </div>
+    </div>
+
+    <!-- Response Panel -->
+    <div class="card">
+        <div class="card-header">
+            <h2>📨 الاستجابة</h2>
+        </div>
+        <div class="response-panel">
+            <div class="response-content" id="responseContent">
+                <span style="color: rgba(255,255,255,0.5)">// الاستجابة ستظهر هنا...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- History -->
+    <div class="card">
+        <div class="card-header">
+            <h2>📜 السجل</h2>
+            <button class="btn btn-outline" onclick="clearHistory()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                مسح السجل
+            </button>
+        </div>
+        <div class="history-list" id="historyList">
+            <p style="color: rgba(255,255,255,0.5); text-align: center; padding: 2rem;">لا توجد سجلات بعد</p>
+        </div>
+    </div>
+    </main>
+    </div>
+
+    <script>
+        // State
+        let currentSource = 'qradar';
+        let currentFormat = 'json';
+        let stats = { total: 0, success: 0, error: 0 };
+        let history = [];
+
+        // Sample data for each source and format
+        const sampleData = {
+            qradar: {
+                json: {
+                    id: 12345,
+                    description: "Excessive Firewall Denies Between Hosts",
+                    severity: 8,
+                    offense_type: 1,
+                    status: "OPEN",
+                    start_time: Date.now(),
+                    offense_source: "192.168.1.100",
+                    source_network: "Internal",
+                    destination_networks: ["External"],
+                    categories: ["Firewall Deny", "Suspicious Activity"],
+                    magnitude: 7,
+                    relevance: 8,
+                    credibility: 9
+                },
+                cef: 'CEF:0|IBM|QRadar|7.5|12345|Excessive Firewall Denies|8|src=192.168.1.100 dst=203.0.113.50 spt=49152 dpt=443 act=blocked cat=Firewall',
+                syslog: '<134>Jan 13 15:30:00 qradar-01 QRadar: Offense 12345 - Excessive Firewall Denies from 192.168.1.100',
+                leef: 'LEEF:2.0|IBM|QRadar|7.5|OffenseCreated|\toffenseID=12345\tseverity=8\tsrc=192.168.1.100\tdst=203.0.113.50'
+            },
+            crowdstrike: {
+                json: {
+                    detection_id: "ldt:" + Math.random().toString(36).substr(2, 9),
+                    created_timestamp: new Date().toISOString(),
+                    max_severity: 85,
+                    max_severity_displayname: "High",
+                    status: "new",
+                    device: {
+                        device_id: "dev_" + Math.random().toString(36).substr(2, 9),
+                        hostname: "WORKSTATION-" + Math.floor(Math.random() * 100),
+                        external_ip: "203.0.113." + Math.floor(Math.random() * 255),
+                        local_ip: "192.168.1." + Math.floor(Math.random() * 255),
+                        os_version: "Windows 11",
+                        platform_name: "Windows"
+                    },
+                    behaviors: [{
+                        scenario: "suspicious_activity",
+                        severity: 85,
+                        tactic: "Defense Evasion",
+                        technique: "Process Injection",
+                        user_name: "admin",
+                        filename: "powershell.exe",
+                        cmdline: "powershell.exe -enc JABjAGwAaQBlAG4AdAA=",
+                        sha256: "a".repeat(64)
+                    }]
+                },
+                cef: 'CEF:0|CrowdStrike|Falcon|6.0|ProcessInjection|Suspicious Process Injection|85|src=192.168.1.50 suser=admin fname=powershell.exe',
+                syslog: '<131>Jan 13 15:30:00 falcon-sensor CrowdStrike: Detection - Process Injection by admin on WORKSTATION-01'
+            },
+            defender: {
+                json: {
+                    id: "da_" + Math.random().toString(36).substr(2, 9),
+                    createdDateTime: new Date().toISOString(),
+                    severity: "high",
+                    title: "Suspicious PowerShell Command Line",
+                    description: "A suspicious PowerShell command was detected that may indicate malicious activity",
+                    category: "SuspiciousActivity",
+                    status: "new",
+                    assignedTo: null,
+                    evidence: [
+                        {
+                            "@odata.type": "#microsoft.graph.security.ipEvidence",
+                            ipAddress: "192.168.1." + Math.floor(Math.random() * 255)
+                        },
+                        {
+                            "@odata.type": "#microsoft.graph.security.userEvidence",
+                            userAccount: { accountName: "admin" }
+                        },
+                        {
+                            "@odata.type": "#microsoft.graph.security.deviceEvidence",
+                            deviceDnsName: "WORKSTATION-PC"
+                        }
+                    ]
+                },
+                xml: `<?xml version="1.0"?>
+<Event>
+    <System>
+        <EventID>4688</EventID>
+        <Level>4</Level>
+        <TimeCreated SystemTime="${new Date().toISOString()}"/>
+        <Computer>WORKSTATION-PC</Computer>
+    </System>
+    <EventData>
+        <Data Name="NewProcessName">powershell.exe</Data>
+        <Data Name="CommandLine">powershell -enc JABjAGwAaQBlAG4AdAA=</Data>
+        <Data Name="SubjectUserName">admin</Data>
+    </EventData>
+</Event>`
+            },
+            splunk: {
+                json: {
+                    event_id: "sp_" + Math.random().toString(36).substr(2, 9),
+                    _time: new Date().toISOString(),
+                    urgency: "critical",
+                    rule_name: "Brute Force Attack Detected",
+                    rule_description: "Multiple failed login attempts detected from single IP",
+                    src: "10.0.0." + Math.floor(Math.random() * 255),
+                    dest: "192.168.1.100",
+                    src_user: "attacker",
+                    host: "auth-server-01",
+                    count: Math.floor(Math.random() * 100) + 10
+                },
+                syslog: '<130>Jan 13 15:30:00 splunk-indexer Splunk: Notable Event - Brute Force Attack from 10.0.0.50 to auth-server-01'
+            },
+            custom_siem: {
+                json: {
+                    alert_uuid: "uuid_" + Date.now(),
+                    risk_score: Math.floor(Math.random() * 10) + 1,
+                    threat_name: "Ransomware Activity Detected",
+                    event_description: "Suspicious file encryption behavior detected",
+                    attacker_ip: "45.33.32." + Math.floor(Math.random() * 255),
+                    victim_host: "FILE-SERVER-0" + Math.floor(Math.random() * 9 + 1),
+                    affected_user: "user" + Math.floor(Math.random() * 100) + "@company.com",
+                    file_hash: "sha256:" + "b".repeat(64),
+                    detection_time: new Date().toISOString(),
+                    action_taken: "Blocked"
+                },
+                cef: 'CEF:0|CustomSIEM|SecurityMonitor|1.0|RANSOM|Ransomware Activity|9|src=45.33.32.156 dst=192.168.1.100 fname=encrypted_files.exe fileHash=' + 'c'.repeat(64),
+                syslog: '<129>Jan 13 15:30:00 custom-siem SecurityAlert: CRITICAL - Ransomware detected on FILE-SERVER-01 from 45.33.32.156',
+                kv: 'timestamp=' + new Date().toISOString() + ' severity=critical src_ip=45.33.32.156 dst_ip=192.168.1.100 action=blocked user=admin threat=Ransomware host=FILE-SERVER-01'
+            },
+            paloalto: {
+                json: {
+                    receive_time: new Date().toISOString(),
+                    serial: "PA-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
+                    type: "THREAT",
+                    subtype: "virus",
+                    src: "192.168.1." + Math.floor(Math.random() * 255),
+                    dst: "203.0.113." + Math.floor(Math.random() * 255),
+                    src_port: Math.floor(Math.random() * 65535),
+                    dst_port: 443,
+                    protocol: "tcp",
+                    action: "block-url",
+                    threat_name: "Trojan.Generic",
+                    severity: "critical",
+                    threat_category: "malware"
+                },
+                cef: 'CEF:0|Palo Alto Networks|PAN-OS|10.0|virus|Trojan.Generic|10|src=192.168.1.50 dst=203.0.113.100 spt=49152 dpt=443 proto=TCP act=blocked',
+                syslog: '<129>Jan 13 15:30:00 pa-firewall-01 1,2024/01/13 15:30:00,THREAT,virus,192.168.1.50,203.0.113.100,block,Trojan.Generic'
+            },
+            sentinelone: {
+                json: {
+                    id: "s1_" + Math.random().toString(36).substr(2, 9),
+                    createdAt: new Date().toISOString(),
+                    threatInfo: {
+                        threatName: "Emotet",
+                        classification: "Malware",
+                        confidenceLevel: "high",
+                        analystVerdict: "true_positive",
+                        mitigationStatus: "mitigated"
+                    },
+                    agentRealtimeInfo: {
+                        agentComputerName: "ENDPOINT-" + Math.floor(Math.random() * 100),
+                        agentOsName: "Windows 11",
+                        agentIp: "192.168.1." + Math.floor(Math.random() * 255)
+                    },
+                    indicators: [
+                        { category: "Process", description: "Suspicious process execution" },
+                        { category: "Network", description: "C2 communication detected" }
+                    ]
+                },
+                cef: 'CEF:0|SentinelOne|Agent|5.0|Emotet|Malware Detection|9|src=192.168.1.50 shost=ENDPOINT-01 threat=Emotet verdict=true_positive'
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+            generateSample();
+        });
+
+        function setupEventListeners() {
+            // Source selection
+            document.querySelectorAll('.source-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    document.querySelectorAll('.source-item').forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    currentSource = item.dataset.source;
+                    document.getElementById('currentSource').textContent = item.querySelector('h3').textContent;
+
+                    // Show/Hide Pull Section
+                    const pullSources = ['qradar', 'crowdstrike', 'defender', 'splunk'];
+                    const pullSection = document.getElementById('pullSection');
+                    if (pullSources.includes(currentSource)) {
+                        pullSection.style.display = 'block';
+                        document.getElementById('pullSourceName').textContent = item.querySelector('h3').textContent;
+                    } else {
+                        pullSection.style.display = 'none';
+                    }
+
+                    generateSample();
+                });
+            });
+
+            // Format tabs
+            document.querySelectorAll('.format-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentFormat = tab.dataset.format;
+                    generateSample();
+                });
+            });
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+
+            // Switch tabs styling
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                if (tab.dataset.mode === mode) tab.classList.add('active');
+                else tab.classList.remove('active');
+            });
+
+            // Switch content
+            document.querySelectorAll('.mode-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${mode}ModeContent`).classList.add('active');
+
+            updateModeUI();
+        }
+
+        function updateModeUI() {
+            if (currentMode === 'pull') {
+                const supported = pullSources.includes(currentSource);
+                const supportedDiv = document.getElementById('pullSupported');
+                const unsupportedDiv = document.getElementById('pullUnsupported');
+
+                if (supported) {
+                    supportedDiv.style.display = 'block';
+                    unsupportedDiv.style.display = 'none';
+                    document.getElementById('pullSourceName').textContent = document.querySelector(`.source-item[data-source="${currentSource}"] h3`).textContent;
+                } else {
+                    supportedDiv.style.display = 'none';
+                    unsupportedDiv.style.display = 'block';
+                }
+            }
+        }
+
+        function generateSample() {
+            const sourceData = sampleData[currentSource];
+            let data = sourceData[currentFormat] || sourceData['json'];
+
+            if (typeof data === 'object') {
+                data = JSON.stringify(data, null, 2);
+            }
+
+            document.getElementById('alertData').value = data;
+        }
+
+        async function sendAlert() {
+            const btn = document.getElementById('sendBtn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> جاري الإرسال...';
+            btn.disabled = true;
+
+            const alertData = document.getElementById('alertData').value;
+            const endpoint = `http://localhost:8000/api/webhook/${currentSource}/`;
+
+            // Determine content type
+            let contentType = 'application/json';
+            if (currentFormat === 'xml') contentType = 'application/xml';
+            else if (['cef', 'syslog', 'leef', 'kv'].includes(currentFormat)) contentType = 'text/plain';
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': contentType },
+                    body: alertData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    stats.success++;
+                    showResponse(result, true);
+                    showToast('✅ تم إرسال التنبيه بنجاح!', 'success');
+                    addToHistory(currentSource, currentFormat, true);
+                } else {
+                    stats.error++;
+                    showResponse(result, false);
+                    showToast('❌ فشل إرسال التنبيه', 'error');
+                    addToHistory(currentSource, currentFormat, false);
+                }
+            } catch (error) {
+                stats.error++;
+                showResponse({ error: error.message }, false);
+                showToast('❌ خطأ في الاتصال', 'error');
+                addToHistory(currentSource, currentFormat, false);
+            }
+
+            stats.total++;
+            updateStats();
+
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+        }
+
+        function showResponse(data, success) {
+            const content = document.getElementById('responseContent');
+            const className = success ? 'response-success' : 'response-error';
+            content.innerHTML = `<pre class="${className}">${JSON.stringify(data, null, 2)}</pre>`;
+        }
+
+        function showToast(message, type) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function addToHistory(source, format, success) {
+            const historyList = document.getElementById('historyList');
+            if (history.length === 0) {
+                historyList.innerHTML = '';
+            }
+
+            const time = new Date().toLocaleTimeString('ar-EG');
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerHTML = `
+                <span>${source} (${format.toUpperCase()})</span>
+                <span class="badge badge-${success ? 'success' : 'error'}">${success ? 'نجاح' : 'فشل'}</span>
+                <span class="time">${time}</span>
+            `;
+
+            historyList.insertBefore(item, historyList.firstChild);
+            history.unshift({ source, format, success, time });
+
+            // Keep only last 20
+            if (history.length > 20) {
+                history.pop();
+                historyList.removeChild(historyList.lastChild);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalSent').textContent = stats.total;
+            document.getElementById('successCount').textContent = stats.success;
+            document.getElementById('errorCount').textContent = stats.error;
+        }
+
+        function clearEditor() {
+            document.getElementById('alertData').value = '';
+        }
+
+        function clearHistory() {
+            history = [];
+            document.getElementById('historyList').innerHTML = '<p style="color: rgba(255,255,255,0.5); text-align: center; padding: 2rem;">لا توجد سجلات بعد</p>';
+        }
+
+        function copyToClipboard() {
+            const textarea = document.getElementById('alertData');
+            textarea.select();
+            document.execCommand('copy');
+            showToast('📋 تم النسخ!', 'success');
+        }
+
+        // ================== BULK SEND ==================
+        let bulkRunning = false;
+        let bulkStopped = false;
+
+        const allSources = ['qradar', 'crowdstrike', 'defender', 'splunk', 'custom_siem', 'paloalto', 'sentinelone'];
+        const allFormats = ['json', 'cef', 'syslog', 'xml', 'leef', 'kv'];
+
+        const threatNames = [
+            'Ransomware Attack', 'Brute Force', 'SQL Injection', 'XSS Attack',
+            'Malware Detected', 'Phishing Attempt', 'DDoS Attack', 'Credential Theft',
+            'Lateral Movement', 'Data Exfiltration', 'Privilege Escalation', 'Botnet Activity',
+            'Cryptominer', 'Trojan Detected', 'Worm Spreading', 'Zero-Day Exploit'
+        ];
+
+        function generateRandomAlert(source, format) {
+            const randomIP = () => `${Math.floor(Math.random() * 223) + 1}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+            const randomHost = () => `HOST-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+            const randomUser = () => ['admin', 'user', 'service', 'root', 'system'][Math.floor(Math.random() * 5)];
+            const randomThreat = () => threatNames[Math.floor(Math.random() * threatNames.length)];
+            const randomSeverity = () => Math.floor(Math.random() * 10) + 1;
+            const randomHash = () => Array(64).fill(0).map(() => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
+
+            if (format === 'json') {
+                return JSON.stringify({
+                    alert_id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`,
+                    timestamp: new Date().toISOString(),
+                    severity: randomSeverity(),
+                    threat_name: randomThreat(),
+                    source_ip: randomIP(),
+                    destination_ip: randomIP(),
+                    hostname: randomHost(),
+                    user: randomUser(),
+                    hash_sha256: randomHash(),
+                    action: ['blocked', 'allowed', 'quarantined', 'detected'][Math.floor(Math.random() * 4)]
+                });
+            } else if (format === 'cef') {
+                return `CEF:0|Vendor|Product|1.0|${Math.floor(Math.random() * 1000)}|${randomThreat()}|${randomSeverity()}|src=${randomIP()} dst=${randomIP()} suser=${randomUser()} shost=${randomHost()}`;
+            } else if (format === 'syslog') {
+                const pri = Math.floor(Math.random() * 8) + 128;
+                return `<${pri}>Jan 13 ${String(Math.floor(Math.random() * 24)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')} ${randomHost()} security: ${randomThreat()} from ${randomIP()}`;
+            } else if (format === 'xml') {
+                return `<?xml version="1.0"?><alert><id>${Date.now()}</id><severity>${randomSeverity()}</severity><title>${randomThreat()}</title><source_ip>${randomIP()}</source_ip><hostname>${randomHost()}</hostname></alert>`;
+            } else if (format === 'leef') {
+                return `LEEF:2.0|Vendor|Product|1.0|${randomThreat()}|\tseverity=${randomSeverity()}\tsrc=${randomIP()}\tdst=${randomIP()}\tuserName=${randomUser()}`;
+            } else if (format === 'kv') {
+                return `timestamp=${new Date().toISOString()} severity=${randomSeverity()} threat="${randomThreat()}" src_ip=${randomIP()} dst_ip=${randomIP()} user=${randomUser()} host=${randomHost()}`;
+            }
+            return '{}';
+        }
+
+        async function bulkSend() {
+            const count = parseInt(document.getElementById('bulkCount').value) || 10;
+            const delay = parseInt(document.getElementById('bulkDelay').value) || 50;
+            const randomSources = document.getElementById('randomSources').checked;
+            const randomFormats = document.getElementById('randomFormats').checked;
+
+            if (count < 1 || count > 100) {
+                showToast('❌ العدد يجب أن يكون بين 1 و 100', 'error');
+                return;
+            }
+
+            bulkRunning = true;
+            bulkStopped = false;
+
+            // Show progress
+            document.getElementById('progressContainer').classList.add('active');
+            document.getElementById('bulkSendBtn').style.display = 'none';
+            document.getElementById('stopBulkBtn').style.display = 'inline-flex';
+
+            let sent = 0;
+            let success = 0;
+            let errors = 0;
+            let formatStats = {};
+
+            showToast(`🚀 بدء إرسال ${count} تنبيه...`, 'success');
+
+            for (let i = 0; i < count; i++) {
+                if (bulkStopped) break;
+
+                const source = randomSources ? allSources[Math.floor(Math.random() * allSources.length)] : currentSource;
+                const format = randomFormats ? allFormats[Math.floor(Math.random() * allFormats.length)] : currentFormat;
+
+                // Track formats
+                formatStats[format] = (formatStats[format] || 0) + 1;
+
+                const alertData = generateRandomAlert(source, format);
+
+                console.log(`Sending [${i + 1}/${count}] Source: ${source}, Format: ${format}`);
+
+                let contentType = 'application/json';
+                if (format === 'xml') contentType = 'application/xml';
+                else if (['cef', 'syslog', 'leef', 'kv'].includes(format)) contentType = 'text/plain';
+
+                try {
+                    const response = await fetch(`http://localhost:8000/api/webhook/${source}/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': contentType },
+                        body: alertData
+                    });
+
+                    if (response.ok) {
+                        success++;
+                        stats.success++;
+                    } else {
+                        errors++;
+                        stats.error++;
+                    }
+                } catch (e) {
+                    errors++;
+                    stats.error++;
+                    console.error('Send error:', e);
+                }
+
+                sent++;
+                stats.total++;
+
+                // Update progress
+                const percent = Math.round((sent / count) * 100);
+                document.getElementById('progressFill').style.width = `${percent}%`;
+                document.getElementById('progressText').textContent = `${sent} / ${count}`;
+                document.getElementById('progressPercent').textContent = `${percent}%`;
+                updateStats();
+
+                if (delay > 0 && i < count - 1) {
+                    await new Promise(r => setTimeout(r, delay));
+                }
+            }
+
+            bulkRunning = false;
+            document.getElementById('bulkSendBtn').style.display = 'inline-flex';
+            document.getElementById('stopBulkBtn').style.display = 'none';
+
+            // Format distribution string
+            const dist = Object.entries(formatStats).map(([k, v]) => `${k}:${v}`).join(', ');
+
+            if (bulkStopped) {
+                showToast(`⏹️ تم الإيقاف. (${dist})`, 'error');
+            } else {
+                showToast(`✅ تم: ${success}/${sent} ناجح. (${dist})`, 'success');
+            }
+
+            // Add to history
+            addToHistory('BULK', `${count}x mixed`, errors === 0);
+        }
+
+        function stopBulk() {
+            bulkStopped = true;
+            showToast('⏹️ جاري الإيقاف...', 'error');
+        }
+
+        // ================== PULL SIMULATION ==================
+        async function triggerPull() {
+            const btn = document.getElementById('pullBtn');
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> جاري السحب...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`http://localhost:8000/api/pull/${currentSource}/`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showResponse(result, true);
+                    showToast(`✅ تم بدء عملية السحب من ${currentSource}`, 'success');
+                    addToHistory(currentSource, 'PULL', true);
+                    stats.total++; // Just counting the trigger
+                    updateStats();
+                } else {
+                    showResponse(result, false);
+                    showToast('❌ فشل بدء عملية السحب', 'error');
+                    addToHistory(currentSource, 'PULL', false);
+                }
+            } catch (error) {
+                showResponse({ error: error.message }, false);
+                showToast('❌ خطأ في الاتصال', 'error');
+                addToHistory(currentSource, 'PULL', false);
+            }
+
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+        }
+    </script>
+</body>
+
+</html>

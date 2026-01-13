@@ -205,6 +205,61 @@ services:
     networks:
       - cyberwatch-network
 
+  # ============================================
+  # Syslog Listener Service
+  # ============================================
+  syslog-service:
+    build:
+      context: ./syslog-service
+      dockerfile: Dockerfile
+    container_name: cyberwatch-syslog
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "1514:1514/udp"
+      - "1515:1515/tcp"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KAFKA_TOPIC=alerts.raw
+      - SYSLOG_UDP_PORT=1514
+      - SYSLOG_TCP_PORT=1515
+    volumes:
+      - ./syslog-service:/app
+    networks:
+      - cyberwatch-network
+
+  # ============================================
+  # Simulator UI (Web Interface)
+  # ============================================
+  simulator-ui:
+    image: nginx:alpine
+    container_name: cyberwatch-simulator-ui
+    ports:
+      - "3000:80"
+    volumes:
+      - ./simulator-ui:/usr/share/nginx/html:ro
+    networks:
+      - cyberwatch-network
+
+  # ============================================
+  # Mock Sources (Simulates Security Tool APIs)
+  # ============================================
+  mock-sources:
+    build:
+      context: ./mock-sources
+      dockerfile: Dockerfile
+    container_name: cyberwatch-mock-sources
+    ports:
+      - "9000:9000"
+    environment:
+      - PORT=9000
+      - ALERTS_PER_REQUEST=5
+    volumes:
+      - ./mock-sources:/app
+    networks:
+      - cyberwatch-network
+
 volumes:
   zookeeper-data:
   zookeeper-logs:
