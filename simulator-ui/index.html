@@ -929,37 +929,55 @@
                 </div>
             </div>
 
-            <!-- Alert Editor -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>📝 محرر التنبيهات</h2>
-                    <div class="format-tabs">
-                        <button class="format-tab active" data-format="json">JSON</button>
-                        <button class="format-tab" data-format="cef">CEF</button>
-                        <button class="format-tab" data-format="syslog">Syslog</button>
-                        <button class="format-tab" data-format="xml">XML</button>
-                        <button class="format-tab" data-format="leef">LEEF</button>
-                        <button class="format-tab" data-format="kv">Key-Value</button>
+            <!-- Mode Switcher -->
+            <div class="mode-switcher">
+                <div class="mode-tab active" data-mode="push" onclick="switchMode('push')">
+                    <span>📤</span> Push Mode (Webhook)
+                </div>
+                <div class="mode-tab" data-mode="pull" onclick="switchMode('pull')">
+                    <span>📥</span> Pull Mode (API Polling)
+                </div>
+            </div>
+
+            <!-- PUSH MODE CONTENT -->
+            <div id="pushModeContent" class="mode-content active">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>🔧 تكوين التنبيه</h2>
+                        <div class="format-tabs" id="formatTabs">
+                            <div class="format-tab active" data-format="json">JSON</div>
+                            <div class="format-tab" data-format="cef">CEF</div>
+                            <div class="format-tab" data-format="syslog">Syslog</div>
+                            <div class="format-tab" data-format="xml">XML</div>
+                            <div class="format-tab" data-format="leef">LEEF</div>
+                            <div class="format-tab" data-format="kv">Key-Value</div>
+                        </div>
                     </div>
-                </div>
 
-                <div class="code-editor">
-                    <textarea id="alertData" spellcheck="false"></textarea>
-                </div>
+                    <div class="actions-row">
+                        <button class="btn btn-outline" onclick="generateSample()">
+                            <span>🔄</span> توليد مثال
+                        </button>
+                        <button class="btn btn-primary" onclick="generateRandom()">
+                            <span>🎲</span> قيم عشوائية
+                        </button>
+                    </div>
 
-                <div class="actions-row" style="margin-top: 1rem;">
-                    <button class="btn btn-primary" id="sendBtn" onclick="sendAlert()">
-                        <span>🚀</span> إرسال التنبيه
-                    </button>
-                    <button class="btn btn-success" onclick="generateSample()">
-                        <span>🎲</span> توليد عينة
-                    </button>
-                    <button class="btn btn-outline" onclick="clearEditor()">
-                        <span>🗑️</span> مسح
-                    </button>
-                    <button class="btn btn-outline" onclick="copyToClipboard()">
-                        <span>📋</span> نسخ
-                    </button>
+                    <div class="code-editor">
+                        <textarea id="alertData" spellcheck="false"></textarea>
+                    </div>
+
+                    <div class="actions-row" style="margin-top: 1rem; justify-content: flex-end;">
+                        <button class="btn btn-success" id="sendBtn" onclick="sendAlert()">
+                            <span>🚀</span> إرسال التنبيه
+                        </button>
+                        <button class="btn btn-outline" onclick="clearEditor()">
+                            <span>🗑️</span> مسح
+                        </button>
+                        <button class="btn btn-outline" onclick="copyToClipboard()">
+                            <span>📋</span> نسخ
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Bulk Send Section -->
@@ -1003,55 +1021,71 @@
                 </div>
             </div>
 
-            <!-- Pull Simulation Section -->
-            <div class="pull-section" id="pullSection" style="display: none;">
-                <div class="pull-header">
-                    <h3>📥 سحب البيانات (Pull Simulation)</h3>
+            <!-- PULL MODE CONTENT -->
+            <div id="pullModeContent" class="mode-content">
+                <div id="pullSupported" style="display: none;">
+                    <div class="pull-section">
+                        <div class="pull-icon">📥</div>
+                        <div class="pull-header">
+                            <h3>Pull Simulation</h3>
+                        </div>
+                        <p class="pull-desc">
+                            محاكاة عملية سحب البيانات (Polling) من <span id="pullSourceName"
+                                style="color: var(--secondary); font-weight: bold;">Source</span> API.
+                            <br>سيقوم النظام بالاتصال بـ Mock API وسحب أحدث التنبيهات.
+                        </p>
+                        <div class="pull-controls">
+                            <button class="btn pull-btn-large" id="pullBtn" onclick="triggerPull()">
+                                <span>⚡</span> سحب البيانات الآن (Trigger Pull)
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="pull-controls">
-                    <p style="margin-left: 1rem; color: rgba(255,255,255,0.7);">
-                        محاكاة سحب البيانات من <span id="pullSourceName">Source</span> عبر API
-                    </p>
-                    <button class="btn btn-primary" id="pullBtn" onclick="triggerPull()">
-                        <span>⚡</span> سحب الآن (Pull Now)
+
+                <div id="pullUnsupported" style="display: none; text-align: center; padding: 4rem; opacity: 0.6;">
+                    <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">🚫</span>
+                    <h3>Pull غير مدعوم لهذا المصدر</h3>
+                    <p>هذا المصدر يدعم استقبال التنبيهات عبر Webhook (Push) فقط.</p>
+                </div>
+            </div>
+
+            <!-- Response Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📨 الاستجابة</h2>
+                </div>
+                <div class="response-panel">
+                    <div class="response-content" id="responseContent">
+                        <span style="color: rgba(255,255,255,0.5)">// الاستجابة ستظهر هنا...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📜 السجل</h2>
+                    <button class="btn btn-outline" onclick="clearHistory()"
+                        style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                        مسح السجل
                     </button>
                 </div>
+                <div class="history-list" id="historyList">
+                    <p style="color: rgba(255,255,255,0.5); text-align: center; padding: 2rem;">لا توجد سجلات بعد</p>
+                </div>
             </div>
-    </div>
-
-    <!-- Response Panel -->
-    <div class="card">
-        <div class="card-header">
-            <h2>📨 الاستجابة</h2>
-        </div>
-        <div class="response-panel">
-            <div class="response-content" id="responseContent">
-                <span style="color: rgba(255,255,255,0.5)">// الاستجابة ستظهر هنا...</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- History -->
-    <div class="card">
-        <div class="card-header">
-            <h2>📜 السجل</h2>
-            <button class="btn btn-outline" onclick="clearHistory()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
-                مسح السجل
-            </button>
-        </div>
-        <div class="history-list" id="historyList">
-            <p style="color: rgba(255,255,255,0.5); text-align: center; padding: 2rem;">لا توجد سجلات بعد</p>
-        </div>
-    </div>
-    </main>
+        </main>
     </div>
 
     <script>
         // State
         let currentSource = 'qradar';
         let currentFormat = 'json';
+        let currentMode = 'push';
         let stats = { total: 0, success: 0, error: 0 };
         let history = [];
+
+        const pullSources = ['qradar', 'crowdstrike', 'defender', 'splunk'];
 
         // Sample data for each source and format
         const sampleData = {
@@ -1071,78 +1105,41 @@
                     relevance: 8,
                     credibility: 9
                 },
-                cef: 'CEF:0|IBM|QRadar|7.5|12345|Excessive Firewall Denies|8|src=192.168.1.100 dst=203.0.113.50 spt=49152 dpt=443 act=blocked cat=Firewall',
-                syslog: '<134>Jan 13 15:30:00 qradar-01 QRadar: Offense 12345 - Excessive Firewall Denies from 192.168.1.100',
-                leef: 'LEEF:2.0|IBM|QRadar|7.5|OffenseCreated|\toffenseID=12345\tseverity=8\tsrc=192.168.1.100\tdst=203.0.113.50'
+                cef: "CEF:0|IBM|QRadar|7.4|1|Excessive Firewall Denies|8|src=192.168.1.100 dst=203.0.113.10 spt=12345 dpt=80 proto=TCP act=DROP msg=Firewall Deny",
+                syslog: "<13>Jan 13 15:30:00 qradar-console LEEF:1.0|IBM|QRadar|7.4|ExcessiveFirewallDenies|src=192.168.1.100	dst=203.0.113.10	sev=8	cat=Firewall"
             },
             crowdstrike: {
                 json: {
-                    detection_id: "ldt:" + Math.random().toString(36).substr(2, 9),
-                    created_timestamp: new Date().toISOString(),
-                    max_severity: 85,
-                    max_severity_displayname: "High",
-                    status: "new",
-                    device: {
-                        device_id: "dev_" + Math.random().toString(36).substr(2, 9),
-                        hostname: "WORKSTATION-" + Math.floor(Math.random() * 100),
-                        external_ip: "203.0.113." + Math.floor(Math.random() * 255),
-                        local_ip: "192.168.1." + Math.floor(Math.random() * 255),
-                        os_version: "Windows 11",
-                        platform_name: "Windows"
-                    },
-                    behaviors: [{
-                        scenario: "suspicious_activity",
-                        severity: 85,
-                        tactic: "Defense Evasion",
-                        technique: "Process Injection",
-                        user_name: "admin",
-                        filename: "powershell.exe",
-                        cmdline: "powershell.exe -enc JABjAGwAaQBlAG4AdAA=",
-                        sha256: "a".repeat(64)
-                    }]
+                    event_id: "cs_" + Math.random().toString(36).substr(2, 9),
+                    timestamp: new Date().toISOString(),
+                    type: "Detection",
+                    severity: "Critical",
+                    tactic: "Credential Access",
+                    technique: "Brute Force",
+                    computer_name: "DESKTOP-ABC1234",
+                    user_name: "john.doe",
+                    file_path: "C:\\Windows\\System32\\cmd.exe",
+                    command_line: "cmd.exe /c powershell -enc ...",
+                    hash: "a1b2c3d4e5f6...",
+                    status: "new"
                 },
-                cef: 'CEF:0|CrowdStrike|Falcon|6.0|ProcessInjection|Suspicious Process Injection|85|src=192.168.1.50 suser=admin fname=powershell.exe',
-                syslog: '<131>Jan 13 15:30:00 falcon-sensor CrowdStrike: Detection - Process Injection by admin on WORKSTATION-01'
+                cef: "CEF:0|CrowdStrike|Falcon|1.0|DefenseEvasion|Suspicious PowerShell|9|src=10.10.10.5 suser=john.doe filePath=C:\\Windows\\System32\\cmd.exe",
+                syslog: "<12>Jan 13 15:30:00 falcon-sensor CrowdStrike: Detection Summary - Host: DESKTOP-ABC1234 User: john.doe Tactic: Credential Access"
             },
             defender: {
                 json: {
                     id: "da_" + Math.random().toString(36).substr(2, 9),
-                    createdDateTime: new Date().toISOString(),
-                    severity: "high",
-                    title: "Suspicious PowerShell Command Line",
-                    description: "A suspicious PowerShell command was detected that may indicate malicious activity",
-                    category: "SuspiciousActivity",
+                    title: "Suspicious PowerShell command line",
+                    severity: "High",
+                    category: "DefenseEvasion",
                     status: "new",
                     assignedTo: null,
                     evidence: [
-                        {
-                            "@odata.type": "#microsoft.graph.security.ipEvidence",
-                            ipAddress: "192.168.1." + Math.floor(Math.random() * 255)
-                        },
-                        {
-                            "@odata.type": "#microsoft.graph.security.userEvidence",
-                            userAccount: { accountName: "admin" }
-                        },
-                        {
-                            "@odata.type": "#microsoft.graph.security.deviceEvidence",
-                            deviceDnsName: "WORKSTATION-PC"
-                        }
+                        { "@odata.type": "#microsoft.graph.security.ipEvidence", ipAddress: "192.168.1.100" },
+                        { "@odata.type": "#microsoft.graph.security.userEvidence", userAccount: { accountName: "admin" } }
                     ]
                 },
-                xml: `<?xml version="1.0"?>
-<Event>
-    <System>
-        <EventID>4688</EventID>
-        <Level>4</Level>
-        <TimeCreated SystemTime="${new Date().toISOString()}"/>
-        <Computer>WORKSTATION-PC</Computer>
-    </System>
-    <EventData>
-        <Data Name="NewProcessName">powershell.exe</Data>
-        <Data Name="CommandLine">powershell -enc JABjAGwAaQBlAG4AdAA=</Data>
-        <Data Name="SubjectUserName">admin</Data>
-    </EventData>
-</Event>`
+                xml: `<?xml version="1.0"?><Event><System><EventID>4688</EventID><Level>4</Level><TimeCreated SystemTime="${new Date().toISOString()}"/></System><EventData><Data Name="NewProcessName">powershell.exe</Data></EventData></Event>`
             },
             splunk: {
                 json: {
@@ -1150,73 +1147,25 @@
                     _time: new Date().toISOString(),
                     urgency: "critical",
                     rule_name: "Brute Force Attack Detected",
-                    rule_description: "Multiple failed login attempts detected from single IP",
-                    src: "10.0.0." + Math.floor(Math.random() * 255),
+                    src: "10.0.0.50",
                     dest: "192.168.1.100",
-                    src_user: "attacker",
-                    host: "auth-server-01",
-                    count: Math.floor(Math.random() * 100) + 10
+                    count: 15
                 },
-                syslog: '<130>Jan 13 15:30:00 splunk-indexer Splunk: Notable Event - Brute Force Attack from 10.0.0.50 to auth-server-01'
+                syslog: "<130>Jan 13 15:30:00 splunk-indexer Splunk: Notable Event - Brute Force Attack from 10.0.0.50 to auth-server-01"
             },
             custom_siem: {
-                json: {
-                    alert_uuid: "uuid_" + Date.now(),
-                    risk_score: Math.floor(Math.random() * 10) + 1,
-                    threat_name: "Ransomware Activity Detected",
-                    event_description: "Suspicious file encryption behavior detected",
-                    attacker_ip: "45.33.32." + Math.floor(Math.random() * 255),
-                    victim_host: "FILE-SERVER-0" + Math.floor(Math.random() * 9 + 1),
-                    affected_user: "user" + Math.floor(Math.random() * 100) + "@company.com",
-                    file_hash: "sha256:" + "b".repeat(64),
-                    detection_time: new Date().toISOString(),
-                    action_taken: "Blocked"
-                },
-                cef: 'CEF:0|CustomSIEM|SecurityMonitor|1.0|RANSOM|Ransomware Activity|9|src=45.33.32.156 dst=192.168.1.100 fname=encrypted_files.exe fileHash=' + 'c'.repeat(64),
-                syslog: '<129>Jan 13 15:30:00 custom-siem SecurityAlert: CRITICAL - Ransomware detected on FILE-SERVER-01 from 45.33.32.156',
-                kv: 'timestamp=' + new Date().toISOString() + ' severity=critical src_ip=45.33.32.156 dst_ip=192.168.1.100 action=blocked user=admin threat=Ransomware host=FILE-SERVER-01'
+                json: { alert_uuid: "uuid_" + Date.now(), risk_score: 85, threat_name: "Ransomware Activity" },
+                cef: "CEF:0|CustomSIEM|SecurityMonitor|1.0|RANSOM|Ransomware Activity|9|src=45.33.32.156",
+                syslog: "<129>Jan 13 15:30:00 custom-siem SecurityAlert: CRITICAL - Ransomware detected",
+                kv: "timestamp=" + new Date().toISOString() + " severity=critical threat=Ransomware"
             },
             paloalto: {
-                json: {
-                    receive_time: new Date().toISOString(),
-                    serial: "PA-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-                    type: "THREAT",
-                    subtype: "virus",
-                    src: "192.168.1." + Math.floor(Math.random() * 255),
-                    dst: "203.0.113." + Math.floor(Math.random() * 255),
-                    src_port: Math.floor(Math.random() * 65535),
-                    dst_port: 443,
-                    protocol: "tcp",
-                    action: "block-url",
-                    threat_name: "Trojan.Generic",
-                    severity: "critical",
-                    threat_category: "malware"
-                },
-                cef: 'CEF:0|Palo Alto Networks|PAN-OS|10.0|virus|Trojan.Generic|10|src=192.168.1.50 dst=203.0.113.100 spt=49152 dpt=443 proto=TCP act=blocked',
-                syslog: '<129>Jan 13 15:30:00 pa-firewall-01 1,2024/01/13 15:30:00,THREAT,virus,192.168.1.50,203.0.113.100,block,Trojan.Generic'
+                json: { receive_time: new Date().toISOString(), serial: "PA-12345", type: "THREAT", subtype: "virus", action: "block-url" },
+                cef: "CEF:0|Palo Alto Networks|PAN-OS|10.0|virus|Trojan.Generic|10|act=blocked",
+                syslog: "<129>Jan 13 15:30:00 pa-firewall-01 1,2024/01/13 15:30:00,THREAT,virus,block,Trojan.Generic"
             },
             sentinelone: {
-                json: {
-                    id: "s1_" + Math.random().toString(36).substr(2, 9),
-                    createdAt: new Date().toISOString(),
-                    threatInfo: {
-                        threatName: "Emotet",
-                        classification: "Malware",
-                        confidenceLevel: "high",
-                        analystVerdict: "true_positive",
-                        mitigationStatus: "mitigated"
-                    },
-                    agentRealtimeInfo: {
-                        agentComputerName: "ENDPOINT-" + Math.floor(Math.random() * 100),
-                        agentOsName: "Windows 11",
-                        agentIp: "192.168.1." + Math.floor(Math.random() * 255)
-                    },
-                    indicators: [
-                        { category: "Process", description: "Suspicious process execution" },
-                        { category: "Network", description: "C2 communication detected" }
-                    ]
-                },
-                cef: 'CEF:0|SentinelOne|Agent|5.0|Emotet|Malware Detection|9|src=192.168.1.50 shost=ENDPOINT-01 threat=Emotet verdict=true_positive'
+                json: { id: "s1_" + Date.now(), threatInfo: { threatName: "Emotet", classification: "Malware" } }
             }
         };
 
@@ -1224,6 +1173,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             setupEventListeners();
             generateSample();
+            updateStats();
+            updateModeUI();
         });
 
         function setupEventListeners() {
@@ -1235,26 +1186,17 @@
                     currentSource = item.dataset.source;
                     document.getElementById('currentSource').textContent = item.querySelector('h3').textContent;
 
-                    // Show/Hide Pull Section
-                    const pullSources = ['qradar', 'crowdstrike', 'defender', 'splunk'];
-                    const pullSection = document.getElementById('pullSection');
-                    if (pullSources.includes(currentSource)) {
-                        pullSection.style.display = 'block';
-                        document.getElementById('pullSourceName').textContent = item.querySelector('h3').textContent;
-                    } else {
-                        pullSection.style.display = 'none';
-                    }
-
+                    updateModeUI();
                     generateSample();
                 });
             });
 
-            // Format tabs
-            document.querySelectorAll('.format-tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('.format-tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    currentFormat = tab.dataset.format;
+            // Format selection
+            document.querySelectorAll('.format-tab').forEach(item => {
+                item.addEventListener('click', () => {
+                    document.querySelectorAll('.format-tab').forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    currentFormat = item.dataset.format;
                     generateSample();
                 });
             });
@@ -1297,47 +1239,51 @@
 
         function generateSample() {
             const sourceData = sampleData[currentSource];
-            let data = sourceData[currentFormat] || sourceData['json'];
-
-            if (typeof data === 'object') {
-                data = JSON.stringify(data, null, 2);
+            let data = "";
+            if (sourceData) {
+                data = sourceData[currentFormat] || sourceData['json'] || "No sample for this format";
+                if (typeof data === 'object') data = JSON.stringify(data, null, 4);
             }
-
             document.getElementById('alertData').value = data;
         }
 
+        function generateRandom() {
+            const randomData = generateRandomAlert(currentSource, currentFormat);
+            document.getElementById('alertData').value = (currentFormat === 'json') ? JSON.stringify(JSON.parse(randomData), null, 4) : randomData;
+        }
+
         async function sendAlert() {
+            const data = document.getElementById('alertData').value;
             const btn = document.getElementById('sendBtn');
             const originalContent = btn.innerHTML;
+
             btn.innerHTML = '<span class="loading"></span> جاري الإرسال...';
             btn.disabled = true;
 
-            const alertData = document.getElementById('alertData').value;
-            const endpoint = `http://localhost:8000/api/webhook/${currentSource}/`;
-
-            // Determine content type
             let contentType = 'application/json';
             if (currentFormat === 'xml') contentType = 'application/xml';
             else if (['cef', 'syslog', 'leef', 'kv'].includes(currentFormat)) contentType = 'text/plain';
 
             try {
-                const response = await fetch(endpoint, {
+                const response = await fetch(`http://localhost:8000/api/webhook/${currentSource}/`, {
                     method: 'POST',
-                    headers: { 'Content-Type': contentType },
-                    body: alertData
+                    headers: {
+                        'Content-Type': contentType
+                    },
+                    body: data
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
-                    stats.success++;
                     showResponse(result, true);
-                    showToast('✅ تم إرسال التنبيه بنجاح!', 'success');
+                    showToast('✅ تم إرسال التنبيه بنجاح', 'success');
+                    stats.success++;
                     addToHistory(currentSource, currentFormat, true);
                 } else {
-                    stats.error++;
                     showResponse(result, false);
                     showToast('❌ فشل إرسال التنبيه', 'error');
+                    stats.error++;
                     addToHistory(currentSource, currentFormat, false);
                 }
             } catch (error) {
@@ -1366,16 +1312,11 @@
             toast.className = `toast toast-${type}`;
             toast.textContent = message;
             container.appendChild(toast);
-
             setTimeout(() => toast.remove(), 3000);
         }
 
         function addToHistory(source, format, success) {
             const historyList = document.getElementById('historyList');
-            if (history.length === 0) {
-                historyList.innerHTML = '';
-            }
-
             const time = new Date().toLocaleTimeString('ar-EG');
             const item = document.createElement('div');
             item.className = 'history-item';
@@ -1384,11 +1325,8 @@
                 <span class="badge badge-${success ? 'success' : 'error'}">${success ? 'نجاح' : 'فشل'}</span>
                 <span class="time">${time}</span>
             `;
-
             historyList.insertBefore(item, historyList.firstChild);
             history.unshift({ source, format, success, time });
-
-            // Keep only last 20
             if (history.length > 20) {
                 history.pop();
                 historyList.removeChild(historyList.lastChild);
@@ -1401,15 +1339,11 @@
             document.getElementById('errorCount').textContent = stats.error;
         }
 
-        function clearEditor() {
-            document.getElementById('alertData').value = '';
-        }
-
+        function clearEditor() { document.getElementById('alertData').value = ''; }
         function clearHistory() {
             history = [];
             document.getElementById('historyList').innerHTML = '<p style="color: rgba(255,255,255,0.5); text-align: center; padding: 2rem;">لا توجد سجلات بعد</p>';
         }
-
         function copyToClipboard() {
             const textarea = document.getElementById('alertData');
             textarea.select();
@@ -1420,24 +1354,16 @@
         // ================== BULK SEND ==================
         let bulkRunning = false;
         let bulkStopped = false;
-
         const allSources = ['qradar', 'crowdstrike', 'defender', 'splunk', 'custom_siem', 'paloalto', 'sentinelone'];
         const allFormats = ['json', 'cef', 'syslog', 'xml', 'leef', 'kv'];
-
-        const threatNames = [
-            'Ransomware Attack', 'Brute Force', 'SQL Injection', 'XSS Attack',
-            'Malware Detected', 'Phishing Attempt', 'DDoS Attack', 'Credential Theft',
-            'Lateral Movement', 'Data Exfiltration', 'Privilege Escalation', 'Botnet Activity',
-            'Cryptominer', 'Trojan Detected', 'Worm Spreading', 'Zero-Day Exploit'
-        ];
+        const threatNames = ['Ransomware', 'Brute Force', 'SQL Injection', 'Malware', 'Phishing', 'DDoS', 'Credential Theft'];
 
         function generateRandomAlert(source, format) {
             const randomIP = () => `${Math.floor(Math.random() * 223) + 1}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
             const randomHost = () => `HOST-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-            const randomUser = () => ['admin', 'user', 'service', 'root', 'system'][Math.floor(Math.random() * 5)];
+            const randomUser = () => ['admin', 'user', 'service'][Math.floor(Math.random() * 3)];
             const randomThreat = () => threatNames[Math.floor(Math.random() * threatNames.length)];
             const randomSeverity = () => Math.floor(Math.random() * 10) + 1;
-            const randomHash = () => Array(64).fill(0).map(() => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
 
             if (format === 'json') {
                 return JSON.stringify({
@@ -1448,21 +1374,18 @@
                     source_ip: randomIP(),
                     destination_ip: randomIP(),
                     hostname: randomHost(),
-                    user: randomUser(),
-                    hash_sha256: randomHash(),
-                    action: ['blocked', 'allowed', 'quarantined', 'detected'][Math.floor(Math.random() * 4)]
+                    user: randomUser()
                 });
             } else if (format === 'cef') {
                 return `CEF:0|Vendor|Product|1.0|${Math.floor(Math.random() * 1000)}|${randomThreat()}|${randomSeverity()}|src=${randomIP()} dst=${randomIP()} suser=${randomUser()} shost=${randomHost()}`;
             } else if (format === 'syslog') {
-                const pri = Math.floor(Math.random() * 8) + 128;
-                return `<${pri}>Jan 13 ${String(Math.floor(Math.random() * 24)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')} ${randomHost()} security: ${randomThreat()} from ${randomIP()}`;
+                return `<${Math.floor(Math.random() * 8) + 128}>Jan 13 12:00:00 ${randomHost()} security: ${randomThreat()} from ${randomIP()}`;
             } else if (format === 'xml') {
-                return `<?xml version="1.0"?><alert><id>${Date.now()}</id><severity>${randomSeverity()}</severity><title>${randomThreat()}</title><source_ip>${randomIP()}</source_ip><hostname>${randomHost()}</hostname></alert>`;
+                return `<?xml version="1.0"?><alert><id>${Date.now()}</id><severity>${randomSeverity()}</severity><title>${randomThreat()}</title></alert>`;
             } else if (format === 'leef') {
-                return `LEEF:2.0|Vendor|Product|1.0|${randomThreat()}|\tseverity=${randomSeverity()}\tsrc=${randomIP()}\tdst=${randomIP()}\tuserName=${randomUser()}`;
+                return `LEEF:2.0|Vendor|Product|1.0|${randomThreat()}|\tseverity=${randomSeverity()}\tsrc=${randomIP()}`;
             } else if (format === 'kv') {
-                return `timestamp=${new Date().toISOString()} severity=${randomSeverity()} threat="${randomThreat()}" src_ip=${randomIP()} dst_ip=${randomIP()} user=${randomUser()} host=${randomHost()}`;
+                return `timestamp=${new Date().toISOString()} severity=${randomSeverity()} threat="${randomThreat()}" src=${randomIP()}`;
             }
             return '{}';
         }
@@ -1473,24 +1396,15 @@
             const randomSources = document.getElementById('randomSources').checked;
             const randomFormats = document.getElementById('randomFormats').checked;
 
-            if (count < 1 || count > 100) {
-                showToast('❌ العدد يجب أن يكون بين 1 و 100', 'error');
-                return;
-            }
+            if (count < 1 || count > 100) { showToast('❌ العدد يجب أن يكون بين 1 و 100', 'error'); return; }
 
             bulkRunning = true;
             bulkStopped = false;
-
-            // Show progress
             document.getElementById('progressContainer').classList.add('active');
             document.getElementById('bulkSendBtn').style.display = 'none';
             document.getElementById('stopBulkBtn').style.display = 'inline-flex';
 
-            let sent = 0;
-            let success = 0;
-            let errors = 0;
-            let formatStats = {};
-
+            let sent = 0, success = 0, errors = 0, formatStats = {};
             showToast(`🚀 بدء إرسال ${count} تنبيه...`, 'success');
 
             for (let i = 0; i < count; i++) {
@@ -1498,14 +1412,10 @@
 
                 const source = randomSources ? allSources[Math.floor(Math.random() * allSources.length)] : currentSource;
                 const format = randomFormats ? allFormats[Math.floor(Math.random() * allFormats.length)] : currentFormat;
-
-                // Track formats
                 formatStats[format] = (formatStats[format] || 0) + 1;
-
                 const alertData = generateRandomAlert(source, format);
 
                 console.log(`Sending [${i + 1}/${count}] Source: ${source}, Format: ${format}`);
-
                 let contentType = 'application/json';
                 if (format === 'xml') contentType = 'application/xml';
                 else if (['cef', 'syslog', 'leef', 'kv'].includes(format)) contentType = 'text/plain';
@@ -1516,56 +1426,31 @@
                         headers: { 'Content-Type': contentType },
                         body: alertData
                     });
+                    if (response.ok) { success++; stats.success++; } else { errors++; stats.error++; }
+                } catch (e) { errors++; stats.error++; console.error('Send error:', e); }
 
-                    if (response.ok) {
-                        success++;
-                        stats.success++;
-                    } else {
-                        errors++;
-                        stats.error++;
-                    }
-                } catch (e) {
-                    errors++;
-                    stats.error++;
-                    console.error('Send error:', e);
-                }
-
-                sent++;
-                stats.total++;
-
-                // Update progress
+                sent++; stats.total++;
                 const percent = Math.round((sent / count) * 100);
                 document.getElementById('progressFill').style.width = `${percent}%`;
                 document.getElementById('progressText').textContent = `${sent} / ${count}`;
                 document.getElementById('progressPercent').textContent = `${percent}%`;
                 updateStats();
 
-                if (delay > 0 && i < count - 1) {
-                    await new Promise(r => setTimeout(r, delay));
-                }
+                if (delay > 0 && i < count - 1) await new Promise(r => setTimeout(r, delay));
             }
 
             bulkRunning = false;
             document.getElementById('bulkSendBtn').style.display = 'inline-flex';
             document.getElementById('stopBulkBtn').style.display = 'none';
-
-            // Format distribution string
             const dist = Object.entries(formatStats).map(([k, v]) => `${k}:${v}`).join(', ');
 
-            if (bulkStopped) {
-                showToast(`⏹️ تم الإيقاف. (${dist})`, 'error');
-            } else {
-                showToast(`✅ تم: ${success}/${sent} ناجح. (${dist})`, 'success');
-            }
+            if (bulkStopped) showToast(`⏹️ تم الإيقاف. (${dist})`, 'error');
+            else showToast(`✅ تم: ${success}/${sent} ناجح. (${dist})`, 'success');
 
-            // Add to history
             addToHistory('BULK', `${count}x mixed`, errors === 0);
         }
 
-        function stopBulk() {
-            bulkStopped = true;
-            showToast('⏹️ جاري الإيقاف...', 'error');
-        }
+        function stopBulk() { bulkStopped = true; showToast('⏹️ جاري الإيقاف...', 'error'); }
 
         // ================== PULL SIMULATION ==================
         async function triggerPull() {
@@ -1575,17 +1460,13 @@
             btn.disabled = true;
 
             try {
-                const response = await fetch(`http://localhost:8000/api/pull/${currentSource}/`, {
-                    method: 'POST'
-                });
-
+                const response = await fetch(`http://localhost:8000/api/pull/${currentSource}/`, { method: 'POST' });
                 const result = await response.json();
-
                 if (response.ok) {
                     showResponse(result, true);
                     showToast(`✅ تم بدء عملية السحب من ${currentSource}`, 'success');
                     addToHistory(currentSource, 'PULL', true);
-                    stats.total++; // Just counting the trigger
+                    stats.total++;
                     updateStats();
                 } else {
                     showResponse(result, false);
@@ -1597,11 +1478,10 @@
                 showToast('❌ خطأ في الاتصال', 'error');
                 addToHistory(currentSource, 'PULL', false);
             }
-
             btn.innerHTML = originalContent;
             btn.disabled = false;
         }
     </script>
-</body>
 
+</body>
 </html>
